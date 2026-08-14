@@ -40,6 +40,11 @@ int main(int argc, char** argv) {
     struct ifreq ireq;
     memcpy(ireq.ifr_name, argv[1], strlen(argv[1]));
     ioctl(sfd, SIOCGIFHWADDR, &ireq);
+        // source mac
+    memcpy(&(frame[6]), ireq.ifr_hwaddr.sa_data, 6);
+
+    // Sender hardware address
+    memcpy(&(frame[22]), ireq.ifr_hwaddr.sa_data, 6);
 
     printf(
     "MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -95,8 +100,6 @@ printf(
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // destination mac (broadcast)
     };
 
-    // source mac
-    //memcpy(&(frame[6]), ireq.ifr_hwaddr.sa_data, 6);
 
     /*
     frame[6] = 0xff; //ireq.ifr_hwaddr.sa_data[0];
@@ -106,10 +109,6 @@ printf(
     frame[10] = ireq.ifr_hwaddr.sa_data[4];
     frame[11] = ireq.ifr_hwaddr.sa_data[5];
     */
-
-
-
-    frame[6] = ireq.ifr_hwaddr.sa_data[4];
 
     /*
     frame[7] = 0x3b;
@@ -142,9 +141,6 @@ printf(
     // ARP operation (request)
     frame[20] = 0x00;
     frame[21] = 0x01;
-
-    // Sender hardware address
-   // memcpy(&(frame[22]), ireq.ifr_hwaddr.sa_data, 6);
 
       frame[22] = 0x2c;
     frame[23] = 0x3b;
