@@ -58,8 +58,6 @@ int main(int argc, char** argv) {
    inet_mask = *range;
 
     unsigned int n = (0xffffffff - ntohl(*range) - 1); // avoid ARP to Broadcast address
-
-    while(n != 0) {
     ioctl(sfd, SIOCGIFHWADDR, &ireq);
         // source mac
     memcpy(&(frame[6]), ireq.ifr_hwaddr.sa_data, 6);
@@ -203,6 +201,9 @@ printf(
         printf("byte[%d] = %u\n", i, byte);
     }
 
+
+    while(n != 0) {
+    
     
    
     // memcpy(&(frame[38]), target, 4);
