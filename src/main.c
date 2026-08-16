@@ -30,6 +30,8 @@ int main(int argc, char** argv) {
         perror("Error in Socket Creation");
     }
 
+    
+
     struct sockaddr_ll addr;
     addr.sll_family   = AF_PACKET;
     addr.sll_protocol = htons(ETH_P_ALL);
@@ -39,6 +41,25 @@ int main(int argc, char** argv) {
 
     struct ifreq ireq;
     memcpy(ireq.ifr_name, argv[1], strlen(argv[1]));
+      unsigned char frame[42] = {
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // destination mac (broadcast)
+    }; 
+
+    ioctl(sfd, SIOCGIFNETMASK, &ireq);
+  
+        printf("%d.%d.%d.%d\n",
+           (unsigned char)ireq.ifr_netmask.sa_data[2],
+           (unsigned char)ireq.ifr_netmask.sa_data[3],
+           (unsigned char)ireq.ifr_netmask.sa_data[4],
+           (unsigned char)ireq.ifr_netmask.sa_data[5]);  
+	unsigned int inet_mask;
+    
+   unsigned int *range = (unsigned int*)(&(ireq.ifr_netmask.sa_data[2]));
+   inet_mask = *range;
+
+    unsigned int n = (0xffffffff - ntohl(*range) - 1); // avoid ARP to Broadcast address
+
+    while(n != 0) {
     ioctl(sfd, SIOCGIFHWADDR, &ireq);
         // source mac
     memcpy(&(frame[6]), ireq.ifr_hwaddr.sa_data, 6);
@@ -96,9 +117,6 @@ printf(
 
     // 18 Bytes of Padding like that we avoid this frame to be a runt.
 
-    unsigned char frame[42] = {
-        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // destination mac (broadcast)
-    };
 
 
     /*
@@ -142,13 +160,6 @@ printf(
     frame[20] = 0x00;
     frame[21] = 0x01;
 
-      frame[22] = 0x2c;
-    frame[23] = 0x3b;
-    frame[24] = 0x70;
-    frame[25] = 0x3e;
-    frame[26] = 0x8a;
-    frame[27] = 0x31;
-
     /*
 
     frame[6] = ireq.ifr_hwaddr.sa_data[0];
@@ -162,32 +173,59 @@ printf(
 
 
     // sender protocol address
-   // memcpy(&(frame[28]), &(ireq.ifr_addr), 4);
-    //frame[28] = ;
-
-
-
-
-    frame[28] = 192;
-    frame[29] = 168;
-    frame[30] = 1;
-    frame[31] = 168;
+    memcpy(&(frame[28]), &(ireq.ifr_addr.sa_data[2]), 4);
+    
 
 
     // target hardware address (not known)
     memset(&(frame[32]), 0x00, 6);
 
     // target protocol address
+    /*
     unsigned char target[4] = {
         192, 168, 1, 254
     };
+    */
 
-    memcpy(&(frame[38]), target, 4);
+
+    unsigned int* iface_addr = (unsigned int*)(&(ireq.ifr_addr.sa_data[2]));
+    
+
+    unsigned int net_addr = ((ntohl(*iface_addr) & ntohl(inet_mask)) + 1); // avoid arp to network address 
+    printf("net addrrrr: %u\n", (net_addr & 0xff000000) >> 24);
+
+
+
+     for (int i = 0; i < 4; i++) {
+        unsigned char byte =
+            (unsigned char)ireq.ifr_addr.sa_data[2 + i];
+
+        printf("byte[%d] = %u\n", i, byte);
+    }
+
+    
+   
+    // memcpy(&(frame[38]), target, 4);
+    frame[38] = (unsigned char)((net_addr & 0xff000000) >> 24);
+    frame[39] = (unsigned char)((net_addr & 0x00ff0000) >> 16); 
+    frame[40] = (unsigned char)((net_addr & 0x0000ff00) >> 8); 
+    frame[41] = (unsigned char)net_addr & 0x000000ff;
+
+    net_addr  = net_addr + 1;
+
+    printf("net addr; %u \n", net_addr);
+
+
+
 
     // padding
     //memset(&(frame[42]), 0x00, 18);
 
 
-    sendto(sfd, frame, sizeof(frame), 0, (struct sockaddr *)&addr, sizeof(addr));
+    sendto(sfd, frame, sizeof(frame), 0, (struct sockaddr *)&addr, sizeof(addr)); 
+
+
+     n = n - 1;
+    }
 
 }
