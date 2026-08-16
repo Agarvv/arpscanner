@@ -227,6 +227,21 @@ printf(
 
 
      n = n - 1;
-    }
+     //sleep(2); 
+    } 
+   
+   unsigned char rbuff[2048]; 
+
+  int b =  recvfrom(sfd, rbuff, sizeof(rbuff), 0, NULL, NULL); 
+   printf("response %d \n", b);
+
+   for(int i = 0; i < b; i++) {
+	   printf("%u Byte\n", rbuff[i]);
+   }
+ 
+   uint16_t* ethertype = (uint16_t*)(&(rbuff[12]));
+
+   printf("ether type %u \n", ntohl(*ethertype));
+
 
 }
