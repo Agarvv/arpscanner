@@ -255,10 +255,16 @@ printf(
          
 	printf("dest ip: %u\n", ntohl(*dest_ip));
 			
-	if ((ntohs(*op) == 0x2) && (ntohs(*dest_ip) == *iface_addr) && (ntohll(*dest_mac >> 16) == (ntoll(*ifr_mac) >> 16))) {
+	if ((ntohs(*op) == 0x2) && (ntohs(*dest_ip) == *iface_addr) && (*dest_mac >> 16 == (*ifr_mac >> 16))) {
 
           printf("FINE\n");
            printf("Mac y ip aqui\n");
+           
+           printf("%02X.%02X.%02X.%02X Is At: ",
+       rbuff[28], rbuff[29], rbuff[30], rbuff[31]);  
+       printf("%02X:%02X:%02X:%02X:%02X:%02X.",
+       rbuff[22], rbuff[23], rbuff[24], rbuff[25], rbuff[26], rbuff[27]);
+       
 	} 
 	
 
