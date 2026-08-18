@@ -59,6 +59,7 @@ int main(int argc, char** argv) {
 
     unsigned int n = (0xffffffff - ntohl(*range) - 1); // avoid ARP to Broadcast address
     ioctl(sfd, SIOCGIFHWADDR, &ireq);
+    uint64_t* ifr_mac = (uint64_t*)(&(ireq.ifr_hwaddr.sa_data));
         // source mac
     memcpy(&(frame[6]), ireq.ifr_hwaddr.sa_data, 6);
 
@@ -240,8 +241,31 @@ printf(
    }
  
    uint16_t* ethertype = (uint16_t*)(&(rbuff[12]));
+   uint16_t* htype = (uint16_t*)(&(rbuff[14]));
+   uint16_t* ptype = (uint16_t*)(&(rbuff[16]));
 
-   printf("ether type %u \n", ntohl(*ethertype));
+   printf("ether type %u \n", ntohs(*ethertype));
+
+   if(ntohs(*ethertype) == 0x0806 && (ntohs(*htype) == 0x1 && ntohs(*ptype) == 0x0800)) {
+        uint16_t* op = (uint16_t*)(&(rbuff[20]));
+	uint32_t* dest_ip = (uint32_t*)(&(rbuff[38]));
+	uint64_t* dest_mac = (uint64_t*)(&(rbuff[6])); 
+
+/*	if ((ntohs(*op) == 0x2) && (ntohs(*dest_ip) == ntohl(*iface_addr)) && (ntohs(*dest_mac >> 16) == (ntohs(*ifr_mac) >> 16))) */ 
+         
+	printf("dest ip: %u\n", ntohl(*dest_ip));
+			
+	if ((ntohs(*op) == 0x2) && (ntohs(*dest_ip) == *iface_addr) && (ntohll(*dest_mac >> 16) == (ntoll(*ifr_mac) >> 16))) {
+
+          printf("FINE\n");
+           printf("Mac y ip aqui\n");
+	} 
+	
+
+   } else {
+
+
+   }
 
 
 }
