@@ -16,6 +16,8 @@
 #include <netinet/in.h>
 #include <ifaddrs.h>
 
+#include <inttypes.h>
+
 int main(int argc, char** argv) {
 
     if(argc != 2) {
@@ -59,7 +61,13 @@ int main(int argc, char** argv) {
 
     unsigned int n = (0xffffffff - ntohl(*range) - 1); // avoid ARP to Broadcast address
     ioctl(sfd, SIOCGIFHWADDR, &ireq);
-    uint64_t* ifr_mac = (uint64_t*)(&(ireq.ifr_hwaddr.sa_data));
+
+    uint64_t* ifr_maca = (uint64_t*)(&(ireq.ifr_hwaddr.sa_data));
+    uint64_t ifr_mac; 
+    ifr_mac = *ifr_maca;
+    // printf("%" PRIu64 " puta de mierda \n", *ifr_maca);
+
+
         // source mac
     memcpy(&(frame[6]), ireq.ifr_hwaddr.sa_data, 6);
 
@@ -191,7 +199,7 @@ printf(
     
 
     unsigned int net_addr = ((ntohl(*iface_addr) & ntohl(inet_mask)) + 1); // avoid arp to network address 
-    printf("net addrrrr: %u\n", (net_addr & 0xff000000) >> 24);
+   // printf("net addrrrr: %u\n", (net_addr & 0xff000000) >> 24);
 
 
 
@@ -199,7 +207,7 @@ printf(
         unsigned char byte =
             (unsigned char)ireq.ifr_addr.sa_data[2 + i];
 
-        printf("byte[%d] = %u\n", i, byte);
+       // printf("byte[%d] = %u\n", i, byte);
     }
 
 
@@ -215,7 +223,7 @@ printf(
 
     net_addr  = net_addr + 1;
 
-    printf("net addr; %u \n", net_addr);
+    //printf("net addr; %u \n", net_addr);
 
 
 
@@ -228,23 +236,28 @@ printf(
 
 
      n = n - 1;
+     
      //sleep(2); 
     } 
    
    unsigned char rbuff[2048]; 
-
+ 
+  while(1) { 
   int b =  recvfrom(sfd, rbuff, sizeof(rbuff), 0, NULL, NULL); 
-   printf("response %d \n", b);
-
+  
+ //  printf("response %d \n", b);
+ 
+  /*
    for(int i = 0; i < b; i++) {
 	   printf("%u Byte\n", rbuff[i]);
    }
+  */
  
    uint16_t* ethertype = (uint16_t*)(&(rbuff[12]));
    uint16_t* htype = (uint16_t*)(&(rbuff[14]));
    uint16_t* ptype = (uint16_t*)(&(rbuff[16]));
 
-   printf("ether type %u \n", ntohs(*ethertype));
+ //  printf("ether type %u \n", ntohs(*ethertype));
 
    if(ntohs(*ethertype) == 0x0806 && (ntohs(*htype) == 0x1 && ntohs(*ptype) == 0x0800)) {
         uint16_t* op = (uint16_t*)(&(rbuff[20]));
@@ -253,16 +266,26 @@ printf(
 
 /*	if ((ntohs(*op) == 0x2) && (ntohs(*dest_ip) == ntohl(*iface_addr)) && (ntohs(*dest_mac >> 16) == (ntohs(*ifr_mac) >> 16))) */ 
          
-	printf("dest ip: %u\n", ntohl(*dest_ip));
-			
-	if ((ntohs(*op) == 0x2) && (ntohs(*dest_ip) == *iface_addr) && (*dest_mac >> 16 == (*ifr_mac >> 16))) {
+//	printf("dest ip: %u\n", ntohl(*dest_ip));
 
-          printf("FINE\n");
-           printf("Mac y ip aqui\n");
+
+//	printf("%" PRIu64 " MACA \n", ifr_mac);
+			
+	if ((ntohs(*op) == 0x2) && (ntohl(*dest_ip) == ntohl(*iface_addr)) &&  ( memcmp(&frame[6], &rbuff[0], 6) == 0 ) ) {
+
+
+
+
+
+
+
+       //   printf("FINE\n");
+        //   printf("Mac y ip aqui\n");
            
-           printf("%02X.%02X.%02X.%02X Is At: ",
-       rbuff[28], rbuff[29], rbuff[30], rbuff[31]);  
-       printf("%02X:%02X:%02X:%02X:%02X:%02X.",
+        printf("%u.%u.%u.%u Is At: ",
+       rbuff[28], rbuff[29], rbuff[30], rbuff[31]);
+
+       printf("%02X:%02X:%02X:%02X:%02X:%02X. \n",
        rbuff[22], rbuff[23], rbuff[24], rbuff[25], rbuff[26], rbuff[27]);
        
 	} 
@@ -273,5 +296,5 @@ printf(
 
    }
 
-
+   }
 }
